@@ -90,20 +90,33 @@ def sample_entropy(x, m=[2], r=[0.15], sd=None, return_type='dict', safe_mode=Fa
         for mm in tmp_m:
             count[mm] = 0
 
+        def similar_runs(data, offset, end, tolerance):
+            '''
+            Yields start and length of all runs of pairs data[x], data[x+offset]
+            where abs(data[x] - data[x+offset]) < tolerance for the whole run.
+
+            I.e. a returned value of (k, n) means that
+            abs(data[x+i] - data[x+offset+i]) < tolerance for k <= i < k+n.
+            '''
+            run_length = 0
+            for i in range(end):
+                if abs(data[i] - data[i + offset]) < tolerance:
+                    run_length += 1
+                elif run_length > 0:
+                    yield (i - run_length, run_length)
+                    run_length = 0
+            if run_length > 0:
+                yield (end - run_length, run_length)
+
+        # j = offset of template vector B w.r.t. template vector A
         for j in range(1, len(x)-min(m)+1):
-            cont = 0
-            for inc in range(0, len(x)-j):
-                if abs(x[inc]-x[j+inc]) < threshold:
-                    cont += 1
-                elif cont > 0:
-                    for mm in tmp_m:
-                        tmp = cont - mm + 1
-                        count[mm] += tmp if tmp > 0 else 0
-                    cont = 0
-            if cont > 0:
+            for start, length in similar_runs(x, j, len(x) - j, threshold):
+                # how many vectors of length max_m fit between start of run
+                # and end of data?
                 for mm in tmp_m:
-                    tmp = cont - mm + 1
-                    count[mm] += tmp if tmp > 0 else 0
+                    # how many vectors of length mm fit within the run?
+                    count_mm = length - mm + 1
+                    count[mm] += max(0, count_mm)
         for mm in m:
             if count[mm+1] == 0 or count[mm] == 0:
                 t = len(x)-mm+1
