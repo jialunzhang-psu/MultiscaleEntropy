@@ -87,6 +87,7 @@ def sample_entropy(x, m=[2], r=[0.15], sd=None, return_type='dict', safe_mode=Fa
             tmp_m.append(mm)
             tmp_m.append(mm+1)
         tmp_m = list(set(tmp_m))
+        max_m = max(tmp_m)
         for mm in tmp_m:
             count[mm] = 0
 
@@ -109,13 +110,15 @@ def sample_entropy(x, m=[2], r=[0.15], sd=None, return_type='dict', safe_mode=Fa
                 yield (end - run_length, run_length)
 
         # j = offset of template vector B w.r.t. template vector A
-        for j in range(1, len(x)-min(m)+1):
+        for j in range(1, len(x)-max_m+1):
             for start, length in similar_runs(x, j, len(x) - j, threshold):
                 # how many vectors of length max_m fit between start of run
                 # and end of data?
+                max_count = len(x) - (start + j + max_m - 1)
                 for mm in tmp_m:
                     # how many vectors of length mm fit within the run?
                     count_mm = length - mm + 1
+                    count_mm = min(count_mm, max_count)
                     count[mm] += max(0, count_mm)
         for mm in m:
             if count[mm+1] == 0 or count[mm] == 0:
